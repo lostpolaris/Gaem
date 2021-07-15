@@ -32,7 +32,7 @@ lastHIT = 0
 #setting up fonts
 font = pygame.font.SysFont("Verdana", 60)
 font_small = pygame.font.SysFont("Verdana", 20)
-game_over = font.render("Game Over", True, GREEN)
+game_over = font.render("Game Over", True, BLUE)
 
 background = pygame.image.load("road.png")
 

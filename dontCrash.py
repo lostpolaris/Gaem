@@ -1,7 +1,9 @@
 #Imports
-import pygame, sys
+import pygame
 from pygame.locals import *
-import random, time
+import sys
+import random
+import time
 
 #Initializing
 pygame.mixer.pre_init(44100, 16, 2, 4096)
@@ -23,8 +25,9 @@ SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 600
 SPEED = 5
 SCORE = 0
-LIVE = 4
-HIT = False
+LIVE = 5
+iFrames = 500
+lastHIT = 0
 
 #setting up fonts
 font = pygame.font.SysFont("Verdana", 60)
@@ -49,6 +52,7 @@ class Enemy(pygame.sprite.Sprite):
         global SCORE
         self.rect.move_ip(0, SPEED)
         if (self.rect.top > 600):
+            pygame.mixer.Sound('passed.wav').play()
             SCORE += 1
             self.rect.top = 0
             self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
@@ -62,18 +66,27 @@ class Player(pygame.sprite.Sprite):
 
     def move(self):
         pressed_keys = pygame.key.get_pressed()
-        #if self.rect.top > 0
-            #if pressed_keys[K_UP]:
-                #self.rect.move_ip(0, -5)
-        #if self.rect.bottom < SCREEN_HEIGHT
-            #if pressed_keys[K_DOWN]:
-                #self.rect.move_ip(0, 5)
+        if self.rect.top > 0:
+            if pressed_keys[K_UP]:
+                self.rect.move_ip(0, -5)
+        if self.rect.bottom < SCREEN_HEIGHT:
+            if pressed_keys[K_DOWN]:
+                self.rect.move_ip(0, 5)
         if self.rect.left > 0:
             if pressed_keys[K_LEFT]:
                 self.rect.move_ip(-5, 0)
         if self.rect.right < SCREEN_WIDTH:
             if pressed_keys[K_RIGHT]:
-                self.rect.move_ip(5, 0)   
+                self.rect.move_ip(5, 0)  
+
+    def vulnerable(self):
+        global lastHIT
+        lime = pygame.time.get_ticks()
+        if lime - lastHIT > iFrames:
+            lastHIT = lime
+            return True
+        else:
+            return False
 
 #Setting up Sprites
 P1 = Player()
@@ -93,7 +106,7 @@ pygame.time.set_timer(INC_SPEED, 2000)
 
 #Adding increasing enemies with time
 INC_ENEMY = pygame.USEREVENT + 1
-pygame.time.set_timer(INC_ENEMY, 10000)
+pygame.time.set_timer(INC_ENEMY, random.randint(5000, 10000))
 
 #Game Loop
 while True:
@@ -101,14 +114,13 @@ while True:
     #Cycles through all events occurring
     for event in pygame.event.get():
         if event.type == INC_SPEED:
-            SPEED += .5
+            SPEED += 0
 
         if event.type == INC_ENEMY:
             E1 = Enemy()
             enemies.add(E1)
             all_sprites.add(E1)
             
-    
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
@@ -117,7 +129,7 @@ while True:
     scores = font_small.render(str(SCORE), True, BLACK)
     lives = font_small.render(str(LIVE), True, GREEN)
     DISPLAYSURF.blit(scores, (10, 10))
-    DISPLAYSURF.blit(lives, (SCREEN_WIDTH - 20, 10))
+    DISPLAYSURF.blit(lives, (SCREEN_WIDTH - 30, 10))
 
     #Moves and Re-draws all Sprites
     for entity in all_sprites:
@@ -125,10 +137,11 @@ while True:
         entity.move()
     
     #To be run if collision occurs between Player and Enemy
-    HIT = False
     if pygame.sprite.spritecollideany(P1, enemies):
-        HIT = True
-        LIVE -= 1
+        if P1.vulnerable():
+            LIVE -= 1
+            pygame.mixer.Sound('fuc.wav').play()
+            DISPLAYSURF.fill(RED)
         if LIVE == 0:
             pygame.mixer.Sound('crash.wav').play()
             time.sleep(.5)
@@ -140,9 +153,7 @@ while True:
             time.sleep(2)
             pygame.quit()
             sys.exit()
-        else:
-            pygame.mixer.Sound('fuc.wav').play()
-            DISPLAYSURF.fill(RED)
-            time.sleep(.01666)
+
+            
     pygame.display.update()
     FramePerSec.tick(FPS)
